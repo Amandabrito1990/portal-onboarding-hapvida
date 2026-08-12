@@ -332,15 +332,7 @@ tbody tr:hover { background: var(--primary-light); }
 const SUPABASE_URL = 'https://zjxvyptjaqlcwaiamwcs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqeHZ5cHRqYXFsY3dhaWFtd2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTg0MjQsImV4cCI6MjEwMjA5NDQyNH0.zDlSXy7XYa2-m_F2ajyzh5rJRn_FSCMkZjRxWwIDL0M';
 
-let supabase;
-try {
-    if (!window.supabase) throw new Error('Supabase JS nao carregou. Verifique sua conexao.');
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch(e) {
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('loginError').textContent = e.message;
-    });
-}
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
 // STATE
@@ -370,13 +362,13 @@ async function doLogin() {
     const errEl = document.getElementById('loginError');
     errEl.textContent = '';
     if (!email || !pw) { errEl.textContent = 'Preencha e-mail e senha.'; return; }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
     if (error) { errEl.textContent = error.message; return; }
     await initApp(data.user);
 }
 
 async function doLogout() {
-    await supabase.auth.signOut();
+    await sb.auth.signOut();
     currentUser = null;
     currentProfile = null;
     document.getElementById('appShell').classList.remove('active');
@@ -393,7 +385,7 @@ async function initApp(user) {
         .single();
     if (error || !profile) {
         toast('Perfil não encontrado. Contate o administrador.', 'error');
-        await supabase.auth.signOut();
+        await sb.auth.signOut();
         return;
     }
     currentProfile = profile;
@@ -410,7 +402,7 @@ async function initApp(user) {
 
 // Check session on load
 (async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (session) {
         await initApp(session.user);
     }
@@ -494,7 +486,7 @@ async function renderDashboard() {
     const isAdmin = currentProfile.perfil === 'admin';
 
     // Fetch colaboradores
-    const { data: colabs } = await supabase.from('colaboradores').select('*');
+    const { data: colabs } = await sb.from('colaboradores').select('*');
     if (!colabs) { main.innerHTML = '<p>Nenhum colaborador cadastrado.</p>'; return; }
 
     // Fetch all checklist items for these colaboradores
@@ -566,9 +558,9 @@ async function renderColaboradores() {
 
     const isAdmin = currentProfile.perfil === 'admin';
 
-    const { data: colabs } = await supabase.from('colaboradores').select('*').order('created_at', { ascending: false });
+    const { data: colabs } = await sb.from('colaboradores').select('*').order('created_at', { ascending: false });
     // Fetch users for gestor/parceiro names
-    const { data: users } = await supabase.from('user_profiles').select('id, nome, perfil');
+    const { data: users } = await sb.from('user_profiles').select('id, nome, perfil');
     const userMap = {};
     (users || []).forEach(u => userMap[u.id] = u);
 
@@ -606,7 +598,7 @@ async function renderColaboradores() {
 // NOVO COLABORADOR MODAL
 // ============================================================
 async function openNovoColaboradorModal() {
-    const { data: users } = await supabase.from('user_profiles').select('id, nome, perfil').eq('ativo', true);
+    const { data: users } = await sb.from('user_profiles').select('id, nome, perfil').eq('ativo', true);
     const gestores = (users || []).filter(u => u.perfil === 'gestor' || u.perfil === 'admin');
     const parceiros = (users || []).filter(u => u.perfil === 'parceiro' || u.perfil === 'admin');
 
@@ -644,14 +636,14 @@ async function salvarNovoColaborador() {
     }
 
     // 1. Inserir colaborador
-    const { data: colab, error } = await supabase.from('colaboradores').insert({
+    const { data: colab, error } = await sb.from('colaboradores').insert({
         nome, area, unidade, gestor_id, parceiro_id, data_admissao, data_fim_integracao: data_fim
     }).select().single();
 
     if (error) { toast('Erro ao cadastrar: ' + error.message, 'error'); return; }
 
     // 2. Buscar todas atividades modelo
-    const { data: atividades } = await supabase.from('atividades_modelo').select('id');
+    const { data: atividades } = await sb.from('atividades_modelo').select('id');
 
     // 3. Gerar checklist
     const checkItems = (atividades || []).map(a => ({
@@ -661,7 +653,7 @@ async function salvarNovoColaborador() {
     }));
 
     if (checkItems.length > 0) {
-        const { error: errCheck } = await supabase.from('checklist_items').insert(checkItems);
+        const { error: errCheck } = await sb.from('checklist_items').insert(checkItems);
         if (errCheck) { toast('Colaborador criado, mas erro ao gerar checklist: ' + errCheck.message, 'error'); }
     }
 
@@ -674,10 +666,10 @@ async function salvarNovoColaborador() {
 // EDIT COLABORADOR MODAL
 // ============================================================
 async function openEditColaboradorModal(colabId) {
-    const { data: colab } = await supabase.from('colaboradores').select('*').eq('id', colabId).single();
+    const { data: colab } = await sb.from('colaboradores').select('*').eq('id', colabId).single();
     if (!colab) { toast('Colaborador não encontrado.', 'error'); return; }
 
-    const { data: users } = await supabase.from('user_profiles').select('id, nome, perfil').eq('ativo', true);
+    const { data: users } = await sb.from('user_profiles').select('id, nome, perfil').eq('ativo', true);
     const gestores = (users || []).filter(u => u.perfil === 'gestor' || u.perfil === 'admin');
     const parceiros = (users || []).filter(u => u.perfil === 'parceiro' || u.perfil === 'admin');
 
@@ -712,7 +704,7 @@ async function salvarEditColaborador(id) {
         data_admissao: document.getElementById('ecAdmissao').value || null,
         status_geral: document.getElementById('ecStatus').value,
     };
-    const { error } = await supabase.from('colaboradores').update(updates).eq('id', id);
+    const { error } = await sb.from('colaboradores').update(updates).eq('id', id);
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
     toast('Colaborador atualizado!', 'success');
     closeModal();
@@ -721,7 +713,7 @@ async function salvarEditColaborador(id) {
 
 async function excluirColaborador(id) {
     if (!confirm('Tem certeza? Isso apagará o colaborador e todo o checklist dele.')) return;
-    const { error } = await supabase.from('colaboradores').delete().eq('id', id);
+    const { error } = await sb.from('colaboradores').delete().eq('id', id);
     if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
     toast('Colaborador excluído.', 'success');
     closeModal();
@@ -736,7 +728,7 @@ async function openChecklist(colabId) {
     main.innerHTML = '<div class="loading">Carregando checklist...</div>';
     document.getElementById('pageTitle').textContent = 'Checklist';
 
-    const { data: colab } = await supabase.from('colaboradores').select('*').eq('id', colabId).single();
+    const { data: colab } = await sb.from('colaboradores').select('*').eq('id', colabId).single();
     if (!colab) { main.innerHTML = '<p>Colaborador não encontrado.</p>'; return; }
 
     // Fetch checklist items joined with atividades_modelo and fases
@@ -847,7 +839,7 @@ async function saveChecklistItem(itemId) {
     const observacao = document.getElementById(`obs-${itemId}`).value.trim();
     const btn = document.getElementById(`savebtn-${itemId}`);
 
-    const { error } = await supabase.from('checklist_items').update({
+    const { error } = await sb.from('checklist_items').update({
         status,
         observacao: observacao || null,
         atualizado_por: currentUser.id,
@@ -869,7 +861,7 @@ async function renderUsuarios() {
     const main = document.getElementById('mainContent');
     main.innerHTML = '<div class="loading">Carregando...</div>';
 
-    const { data: users } = await supabase.from('user_profiles').select('*').order('created_at', { ascending: false });
+    const { data: users } = await sb.from('user_profiles').select('*').order('created_at', { ascending: false });
 
     const perfilLabel = { admin: 'Administrador', gestor: 'Gestor', parceiro: 'Parceiro de Integração' };
 
@@ -938,7 +930,7 @@ async function salvarNovoUsuario() {
 }
 
 async function openEditUsuarioModal(userId) {
-    const { data: u } = await supabase.from('user_profiles').select('*').eq('id', userId).single();
+    const { data: u } = await sb.from('user_profiles').select('*').eq('id', userId).single();
     if (!u) return;
 
     const body = `
@@ -962,7 +954,7 @@ async function openEditUsuarioModal(userId) {
 }
 
 async function salvarEditUsuario(id) {
-    const { error } = await supabase.from('user_profiles').update({
+    const { error } = await sb.from('user_profiles').update({
         nome: document.getElementById('euNome').value.trim(),
         perfil: document.getElementById('euPerfil').value,
         ativo: document.getElementById('euAtivo').value === 'true',
@@ -982,8 +974,8 @@ async function renderBiblioteca() {
     const main = document.getElementById('mainContent');
     main.innerHTML = '<div class="loading">Carregando...</div>';
 
-    const { data: fases } = await supabase.from('fases').select('*').order('ordem');
-    const { data: atividades } = await supabase.from('atividades_modelo').select('*').order('ordem');
+    const { data: fases } = await sb.from('fases').select('*').order('ordem');
+    const { data: atividades } = await sb.from('atividades_modelo').select('*').order('ordem');
 
     let html = '<p class="text-sm text-muted mb-16">Biblioteca mestre de atividades importada da planilha. Estas são as atividades copiadas automaticamente para cada novo colaborador.</p>';
 
