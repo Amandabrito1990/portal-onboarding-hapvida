@@ -264,6 +264,10 @@ tbody tr:hover { background: var(--primary-light); }
         </div>
         <div class="error-msg" id="loginError"></div>
         <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="doLogin()">Entrar</button>
+        <script>
+        document.getElementById('loginPassword').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+        document.getElementById('loginEmail').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+        </script>
     </div>
 </div>
 
@@ -328,7 +332,15 @@ tbody tr:hover { background: var(--primary-light); }
 const SUPABASE_URL = 'https://zjxvyptjaqlcwaiamwcs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqeHZ5cHRqYXFsY3dhaWFtd2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTg0MjQsImV4cCI6MjEwMjA5NDQyNH0.zDlSXy7XYa2-m_F2ajyzh5rJRn_FSCMkZjRxWwIDL0M';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabase;
+try {
+    if (!window.supabase) throw new Error('Supabase JS nao carregou. Verifique sua conexao.');
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) {
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('loginError').textContent = e.message;
+    });
+}
 
 // ============================================================
 // STATE
