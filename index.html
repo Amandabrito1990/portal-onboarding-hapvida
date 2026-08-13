@@ -643,13 +643,14 @@ async function salvarNovoColaborador() {
     if (error) { toast('Erro ao cadastrar: ' + error.message, 'error'); return; }
 
     // 2. Buscar todas atividades modelo
-    const { data: atividades } = await sb.from('atividades_modelo').select('id');
+    const { data: atividades } = await sb.from('atividades_modelo').select('id, responsavel');
 
     // 3. Gerar checklist
     const checkItems = (atividades || []).map(a => ({
         colaborador_id: colab.id,
         atividade_modelo_id: a.id,
-        status: 'nao_iniciado'
+        status: 'nao_iniciado',
+        responsavel: a.responsavel || null
     }));
 
     if (checkItems.length > 0) {
@@ -816,6 +817,7 @@ async function openChecklist(colabId) {
                         <select id="status-${item.id}" onchange="markUnsaved('${item.id}')">
                             ${Object.entries(statusLabels).map(([k, v]) => `<option value="${k}" ${item.status === k ? 'selected' : ''}>${v}</option>`).join('')}
                         </select>
+                        <input id="resp-${item.id}" type="text" placeholder="Responsável" value="${item.responsavel || ''}" onchange="markUnsaved('${item.id}')" style="max-width:200px">
                         <button class="save-btn" id="savebtn-${item.id}" onclick="saveChecklistItem('${item.id}')">Salvar</button>
                     </div>
                     <textarea id="obs-${item.id}" placeholder="Observação (opcional)..." onchange="markUnsaved('${item.id}')">${item.observacao || ''}</textarea>
@@ -837,11 +839,13 @@ function markUnsaved(itemId) {
 async function saveChecklistItem(itemId) {
     const status = document.getElementById(`status-${itemId}`).value;
     const observacao = document.getElementById(`obs-${itemId}`).value.trim();
+    const responsavel = document.getElementById(`resp-${itemId}`).value.trim();
     const btn = document.getElementById(`savebtn-${itemId}`);
 
     const { error } = await sb.from('checklist_items').update({
         status,
         observacao: observacao || null,
+        responsavel: responsavel || null,
         atualizado_por: currentUser.id,
         atualizado_em: new Date().toISOString()
     }).eq('id', itemId);
@@ -997,6 +1001,7 @@ async function renderBiblioteca() {
                     <div class="atv-title">${a.atividade}</div>
                     <div class="atv-meta">${a.como_conduzir || ''}</div>
                     ${a.evidencia_esperada ? `<div class="text-sm" style="color:var(--primary)">✅ Evidência: ${a.evidencia_esperada}</div>` : ''}
+                    ${a.responsavel ? `<div class="text-sm text-muted">👤 Responsável: ${a.responsavel}</div>` : ''}
                 </div>
             </div>`;
         }
