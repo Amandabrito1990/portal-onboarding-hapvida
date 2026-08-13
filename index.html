@@ -491,7 +491,7 @@ async function renderDashboard() {
 
     // Fetch all checklist items for these colaboradores
     const colabIds = colabs.map(c => c.id);
-    const { data: items } = await supabase
+    const { data: items } = await sb
         .from('checklist_items')
         .select('*')
         .in('colaborador_id', colabIds);
@@ -733,7 +733,7 @@ async function openChecklist(colabId) {
     if (!colab) { main.innerHTML = '<p>Colaborador não encontrado.</p>'; return; }
 
     // Fetch checklist items joined with atividades_modelo and fases
-    const { data: items } = await supabase
+    const { data: items } = await sb
         .from('checklist_items')
         .select('*, atividade_modelo:atividades_modelo(*, fase:fases(*))')
         .eq('colaborador_id', colabId);
