@@ -378,7 +378,7 @@ async function doLogout() {
 async function initApp(user) {
     currentUser = user;
     // Fetch profile
-    const { data: profile, error } = await supabase
+    const { data: profile, error } = await sb
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
