@@ -836,6 +836,7 @@ async function openChecklist(colabId) {
     <div class="card mb-16">
         <div class="card-body">
             <h3 style="margin-bottom:8px">${colab.nome}</h3>
+            <div class="text-sm" style="color:var(--primary); font-weight:600; margin-bottom:8px">📋 ${colab.cargo || 'Cargo não definido'}</div>
             <div class="flex gap-16 text-sm text-muted" style="flex-wrap:wrap">
                 <span>📍 ${colab.area || '—'} · ${colab.unidade || '—'}</span>
                 <span>📅 Admissão: ${admDate}</span>
