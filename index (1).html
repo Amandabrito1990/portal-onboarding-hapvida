@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de Onboarding — Hapvida</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS — Hapvida corporate
+   ============================================================ */
+:root {
+    --primary: #0A5F38;
+    --primary-light: #E8F5EE;
+    --primary-dark: #073D24;
+    --accent: #F58220;
+    --accent-light: #FFF3E6;
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --text: #1A1A2E;
+    --text-secondary: #6B7280;
+    --border: #E5E7EB;
+    --danger: #DC2626;
+    --danger-light: #FEE2E2;
+    --success: #16A34A;
+    --success-light: #DCFCE7;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --info: #2563EB;
+    --info-light: #DBEAFE;
+    --sidebar-w: 260px;
+    --header-h: 56px;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,.12);
+}
+
+/* ============================================================
+   RESET + BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+a { color: var(--primary); text-decoration: none; }
+button { cursor: pointer; font-family: inherit; border: none; }
+input, select, textarea { font-family: inherit; font-size: 14px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 12px; }
+th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-secondary); border-bottom: 2px solid var(--border); }
+td { border-bottom: 1px solid var(--border); font-size: 14px; }
+tbody tr:hover { background: var(--primary-light); }
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+.login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+.login-card { background: var(--surface); border-radius: 12px; padding: 40px 36px; width: 100%; max-width: 400px; box-shadow: var(--shadow-lg); }
+.login-card h1 { font-size: 22px; margin-bottom: 4px; }
+.login-card p { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+.login-card .logo-area { text-align: center; margin-bottom: 24px; font-size: 28px; font-weight: 700; color: var(--primary); }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-secondary); }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); outline: none; transition: border .2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,95,56,.12); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 600; transition: background .2s, transform .1s; }
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: #E06F10; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--bg); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #B91C1C; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-block { width: 100%; justify-content: center; }
+.error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; }
+
+/* ============================================================
+   LAYOUT: SIDEBAR + HEADER + MAIN
+   ============================================================ */
+.app { display: none; }
+.app.active { display: flex; min-height: 100vh; }
+
+.sidebar {
+    width: var(--sidebar-w); background: var(--primary-dark); color: #fff;
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0;
+    height: 100vh; z-index: 100; transition: transform .3s;
+}
+.sidebar .brand { padding: 20px; font-size: 16px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.1); }
+.sidebar .brand small { display: block; font-size: 11px; font-weight: 400; opacity: .7; margin-top: 2px; }
+.sidebar nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+.sidebar nav a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+    font-size: 14px; color: rgba(255,255,255,.7); transition: all .2s;
+}
+.sidebar nav a:hover, .sidebar nav a.active { color: #fff; background: rgba(255,255,255,.08); }
+.sidebar nav a.active { border-left: 3px solid var(--accent); }
+.sidebar .user-area { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 13px; }
+.sidebar .user-area .user-name { font-weight: 600; }
+.sidebar .user-area .user-role { opacity: .6; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+.sidebar .user-area button { margin-top: 8px; background: rgba(255,255,255,.1); color: #fff; padding: 6px 12px; border-radius: var(--radius); font-size: 12px; width: 100%; }
+.sidebar .user-area button:hover { background: rgba(255,255,255,.2); }
+
+.main-area { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+.header {
+    height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px; position: sticky; top: 0; z-index: 50;
+    box-shadow: var(--shadow);
+}
+.header .hamburger { display: none; background: none; font-size: 22px; margin-right: 12px; color: var(--text); }
+.header h2 { font-size: 16px; font-weight: 600; }
+.content { padding: 24px; }
+
+/* Overlay for mobile sidebar */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99; }
+.sidebar-overlay.active { display: block; }
+
+/* ============================================================
+   CARDS + STATS
+   ============================================================ */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.stat-card .stat-value { font-size: 28px; font-weight: 700; }
+.stat-card .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.stat-card.green .stat-value { color: var(--success); }
+.stat-card.orange .stat-value { color: var(--warning); }
+.stat-card.red .stat-value { color: var(--danger); }
+.stat-card.blue .stat-value { color: var(--info); }
+
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-header h3 { font-size: 15px; font-weight: 600; }
+.card-body { padding: 20px; }
+.card-body.no-pad { padding: 0; }
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+.badge { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 600; }
+.badge-green { background: var(--success-light); color: var(--success); }
+.badge-yellow { background: var(--warning-light); color: #92400E; }
+.badge-red { background: var(--danger-light); color: var(--danger); }
+.badge-gray { background: #F3F4F6; color: var(--text-secondary); }
+.badge-blue { background: var(--info-light); color: var(--info); }
+
+/* ============================================================
+   CHECKLIST VIEW
+   ============================================================ */
+.fase-section { margin-bottom: 24px; }
+.fase-header { background: var(--primary); color: #fff; padding: 12px 20px; border-radius: var(--radius) var(--radius) 0 0; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.fase-header h4 { font-size: 14px; font-weight: 600; }
+.fase-header .fase-progress { font-size: 12px; opacity: .85; }
+.fase-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); }
+.atividade-row { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+.atividade-row:last-child { border-bottom: none; }
+.atividade-row .atv-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.atividade-row .atv-content { flex: 1; }
+.atividade-row .atv-title { font-size: 14px; margin-bottom: 4px; line-height: 1.4; }
+.atividade-row .atv-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.atividade-row .atv-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.atividade-row select { padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; }
+.atividade-row textarea { width: 100%; margin-top: 6px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; min-height: 40px; resize: vertical; }
+.atividade-row .save-btn { padding: 4px 10px; background: var(--primary); color: #fff; border-radius: var(--radius); font-size: 11px; font-weight: 600; }
+.atividade-row .save-btn:hover { background: var(--primary-dark); }
+
+/* Info expand */
+.atv-expand { cursor: pointer; color: var(--primary); font-size: 12px; font-weight: 600; }
+.atv-detail { display: none; margin-top: 8px; padding: 10px 12px; background: var(--bg); border-radius: var(--radius); font-size: 13px; line-height: 1.5; }
+.atv-detail.open { display: block; }
+.atv-detail strong { color: var(--primary-dark); }
+
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+.progress-bar { background: #E5E7EB; border-radius: 50px; height: 8px; overflow: hidden; }
+.progress-bar .fill { height: 100%; border-radius: 50px; transition: width .3s; }
+.progress-bar .fill.green { background: var(--success); }
+.progress-bar .fill.yellow { background: var(--warning); }
+.progress-bar .fill.red { background: var(--danger); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.active { display: flex; }
+.modal { background: var(--surface); border-radius: 12px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+.modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 17px; font-weight: 600; }
+.modal-header .close-btn { background: none; font-size: 20px; color: var(--text-secondary); }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+   ============================================================ */
+.toast-container { position: fixed; top: 16px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; color: #fff; box-shadow: var(--shadow-lg); animation: slideIn .3s; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.info { background: var(--info); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ============================================================
+   RESPONSIVE — mobile drawer
+   ============================================================ */
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main-area { margin-left: 0; }
+    .header .hamburger { display: block; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .atividade-row { flex-direction: column; }
+    .atividade-row .atv-controls { width: 100%; }
+    .content { padding: 16px; }
+    .modal { max-width: 100%; margin: 10px; }
+}
+@media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.gap-16 { gap: 16px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.mb-16 { margin-bottom: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mt-8 { margin-top: 8px; }
+.text-sm { font-size: 13px; }
+.text-muted { color: var(--text-secondary); }
+.hidden { display: none !important; }
+.text-right { text-align: right; }
+.w-full { width: 100%; }
+.loading { opacity: .5; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================================
+     LOGIN PAGE
+     ============================================================ -->
+<div class="login-page" id="loginPage">
+    <div class="login-card">
+        <div class="logo-area">🏥 Hapvida</div>
+        <h1>Portal de Onboarding</h1>
+        <p>Acompanhamento da jornada de integração</p>
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="loginEmail" placeholder="seu.email@hapvida.com.br">
+        </div>
+        <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="loginPassword" placeholder="Sua senha">
+        </div>
+        <div class="error-msg" id="loginError"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="doLogin()">Entrar</button>
+        <script>
+        document.getElementById('loginPassword').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+        document.getElementById('loginEmail').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+        </script>
+    </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app" id="appShell">
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">
+            🏥 Hapvida
+            <small>Portal de Onboarding</small>
+        </div>
+        <nav id="sidebarNav">
+            <!-- Populated by JS based on profile -->
+        </nav>
+        <div class="user-area">
+            <div class="user-name" id="userName"></div>
+            <div class="user-role" id="userRole"></div>
+            <button onclick="doLogout()">Sair</button>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-area">
+        <header class="header">
+            <button class="hamburger" onclick="toggleSidebar()">☰</button>
+            <h2 id="pageTitle">Painel</h2>
+        </header>
+        <main class="content" id="mainContent">
+            <!-- Populated by JS -->
+        </main>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL (reusável)
+     ============================================================ -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">Modal</h3>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer" id="modalFooter"></div>
+    </div>
+</div>
+
+<!-- ============================================================
+     SUPABASE JS (CDN)
+     ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<script>
+// ============================================================
+// CONFIG — substituir pelos valores reais do projeto Supabase
+// ============================================================
+const SUPABASE_URL = 'https://zjxvyptjaqlcwaiamwcs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqeHZ5cHRqYXFsY3dhaWFtd2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTg0MjQsImV4cCI6MjEwMjA5NDQyNH0.zDlSXy7XYa2-m_F2ajyzh5rJRn_FSCMkZjRxWwIDL0M';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// STATE
+// ============================================================
+let currentUser = null;   // { id, email }
+let currentProfile = null; // { id, email, nome, perfil, ativo }
+let currentPage = 'dashboard';
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type = 'info') {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    if (!email || !pw) { errEl.textContent = 'Preencha e-mail e senha.'; return; }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+    if (error) { errEl.textContent = error.message; return; }
+    await initApp(data.user);
+}
+
+async function doLogout() {
+    await sb.auth.signOut();
+    currentUser = null;
+    currentProfile = null;
+    document.getElementById('appShell').classList.remove('active');
+    document.getElementById('loginPage').style.display = 'flex';
+}
+
+async function initApp(user) {
+    currentUser = user;
+    // Fetch profile
+    const { data: profile, error } = await sb
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+    if (error || !profile) {
+        toast('Perfil não encontrado. Contate o administrador.', 'error');
+        await sb.auth.signOut();
+        return;
+    }
+    currentProfile = profile;
+
+    // Update UI
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appShell').classList.add('active');
+    document.getElementById('userName').textContent = profile.nome;
+    document.getElementById('userRole').textContent = ({ admin: 'Administrador', gestor: 'Gestor', parceiro: 'Parceiro de Integração' })[profile.perfil];
+
+    buildSidebar();
+    navigate('dashboard');
+}
+
+// Check session on load
+(async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+        await initApp(session.user);
+    }
+})();
+
+// ============================================================
+// SIDEBAR NAV
+// ============================================================
+function buildSidebar() {
+    const nav = document.getElementById('sidebarNav');
+    const isAdmin = currentProfile.perfil === 'admin';
+
+    let links = [
+        { id: 'dashboard', icon: '📊', label: 'Painel' },
+        { id: 'colaboradores', icon: '👥', label: 'Colaboradores' },
+    ];
+    if (isAdmin) {
+        links.push({ id: 'usuarios', icon: '🔑', label: 'Usuários' });
+        links.push({ id: 'biblioteca', icon: '📋', label: 'Biblioteca de Atividades' });
+    }
+
+    nav.innerHTML = links.map(l =>
+        `<a href="#" data-page="${l.id}" onclick="navigate('${l.id}');return false;">${l.icon} ${l.label}</a>`
+    ).join('');
+}
+
+function navigate(page) {
+    currentPage = page;
+    // Update sidebar active
+    document.querySelectorAll('#sidebarNav a').forEach(a => {
+        a.classList.toggle('active', a.dataset.page === page);
+    });
+    // Close mobile sidebar
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+
+    const titles = {
+        dashboard: 'Painel de Acompanhamento',
+        colaboradores: 'Colaboradores',
+        usuarios: 'Gerenciar Usuários',
+        biblioteca: 'Biblioteca de Atividades',
+        checklist: 'Checklist'
+    };
+    document.getElementById('pageTitle').textContent = titles[page] || 'Portal';
+
+    // Render page
+    const render = {
+        dashboard: renderDashboard,
+        colaboradores: renderColaboradores,
+        usuarios: renderUsuarios,
+        biblioteca: renderBiblioteca,
+    };
+    if (render[page]) render[page]();
+}
+
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+// ============================================================
+// MODAL helpers
+// ============================================================
+function openModal(title, bodyHTML, footerHTML = '') {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHTML;
+    document.getElementById('modalFooter').innerHTML = footerHTML;
+    document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// ============================================================
+// PAGE: DASHBOARD
+// ============================================================
+async function renderDashboard() {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div class="loading">Carregando...</div>';
+
+    const isAdmin = currentProfile.perfil === 'admin';
+
+    // Fetch colaboradores
+    const { data: colabs } = await sb.from('colaboradores').select('*');
+    if (!colabs) { main.innerHTML = '<p>Nenhum colaborador cadastrado.</p>'; return; }
+
+    // Fetch all checklist items for these colaboradores
+    const colabIds = colabs.map(c => c.id);
+    const { data: items } = await sb
+        .from('checklist_items')
+        .select('*')
+        .in('colaborador_id', colabIds);
+
+    const allItems = items || [];
+    const total = allItems.length;
+    const concluidos = allItems.filter(i => i.status === 'concluido').length;
+    const emAndamento = allItems.filter(i => i.status === 'em_andamento').length;
+    const necessitam = allItems.filter(i => i.status === 'necessita_acompanhamento').length;
+    const naoIniciados = allItems.filter(i => i.status === 'nao_iniciado').length;
+    const pctConcluido = total ? Math.round((concluidos / total) * 100) : 0;
+
+    let html = `
+    <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-value">${colabs.length}</div><div class="stat-label">Colaboradores em Integração</div></div>
+        <div class="stat-card green"><div class="stat-value">${pctConcluido}%</div><div class="stat-label">Atividades Concluídas</div></div>
+        <div class="stat-card orange"><div class="stat-value">${emAndamento}</div><div class="stat-label">Em Andamento</div></div>
+        <div class="stat-card red"><div class="stat-value">${necessitam}</div><div class="stat-label">Necessitam Acompanhamento</div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>Progresso por Colaborador</h3></div>
+        <div class="card-body no-pad">
+            <table>
+                <thead><tr><th>Colaborador</th><th>Área</th><th>Admissão</th><th>Progresso</th><th>Status</th></tr></thead>
+                <tbody>
+    `;
+
+    for (const c of colabs) {
+        const ci = allItems.filter(i => i.colaborador_id === c.id);
+        const done = ci.filter(i => i.status === 'concluido').length;
+        const pct = ci.length ? Math.round((done / ci.length) * 100) : 0;
+        const color = pct >= 80 ? 'green' : pct >= 40 ? 'yellow' : 'red';
+        const statusBadge = c.status_geral === 'concluido'
+            ? '<span class="badge badge-green">Concluído</span>'
+            : c.status_geral === 'cancelado'
+            ? '<span class="badge badge-red">Cancelado</span>'
+            : '<span class="badge badge-blue">Em integração</span>';
+        const admDate = c.data_admissao ? new Date(c.data_admissao).toLocaleDateString('pt-BR') : '—';
+        html += `<tr style="cursor:pointer" onclick="openChecklist('${c.id}')">
+            <td><strong>${c.nome}</strong></td>
+            <td>${c.area || '—'}</td>
+            <td>${admDate}</td>
+            <td style="min-width:140px">
+                <div class="flex items-center gap-8">
+                    <div class="progress-bar" style="flex:1"><div class="fill ${color}" style="width:${pct}%"></div></div>
+                    <span class="text-sm">${pct}%</span>
+                </div>
+            </td>
+            <td>${statusBadge}</td>
+        </tr>`;
+    }
+
+    html += '</tbody></table></div></div>';
+    main.innerHTML = html;
+}
+
+// ============================================================
+// PAGE: COLABORADORES
+// ============================================================
+async function renderColaboradores() {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div class="loading">Carregando...</div>';
+
+    const isAdmin = currentProfile.perfil === 'admin';
+
+    const { data: colabs } = await sb.from('colaboradores').select('*').order('created_at', { ascending: false });
+    // Fetch users for gestor/parceiro names
+    const { data: users } = await sb.from('user_profiles').select('id, nome, perfil');
+    const userMap = {};
+    (users || []).forEach(u => userMap[u.id] = u);
+
+    let html = '';
+    if (isAdmin) {
+        html += `<div class="mb-16"><button class="btn btn-primary" onclick="openNovoColaboradorModal()">+ Novo Colaborador</button></div>`;
+    }
+
+    html += `<div class="card"><div class="card-header"><h3>Todos os Colaboradores</h3></div><div class="card-body no-pad"><table>
+        <thead><tr><th>Nome</th><th>Cargo</th><th>Área</th><th>Unidade</th><th>Gestor</th><th>Parceiro</th><th>Admissão</th><th></th></tr></thead><tbody>`;
+
+    for (const c of (colabs || [])) {
+        const gestor = userMap[c.gestor_id];
+        const parceiro = userMap[c.parceiro_id];
+        const admDate = c.data_admissao ? new Date(c.data_admissao).toLocaleDateString('pt-BR') : '—';
+        html += `<tr>
+            <td><strong>${c.nome}</strong></td>
+            <td>${c.cargo || '—'}</td>
+            <td>${c.area || '—'}</td>
+            <td>${c.unidade || '—'}</td>
+            <td>${gestor ? gestor.nome : '—'}</td>
+            <td>${parceiro ? parceiro.nome : '—'}</td>
+            <td>${admDate}</td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="openChecklist('${c.id}')">📋 Checklist</button>
+                ${isAdmin ? `<button class="btn btn-sm btn-outline" onclick="openEditColaboradorModal('${c.id}')" style="margin-left:4px">✏️</button>` : ''}
+            </td>
+        </tr>`;
+    }
+
+    html += '</tbody></table></div></div>';
+    main.innerHTML = html;
+}
+
+// ============================================================
+// NOVO COLABORADOR MODAL
+// ============================================================
+async function openNovoColaboradorModal() {
+    const { data: users } = await sb.from('user_profiles').select('id, nome, perfil').eq('ativo', true);
+    const gestores = (users || []).filter(u => u.perfil === 'gestor' || u.perfil === 'admin');
+    const parceiros = (users || []).filter(u => u.perfil === 'parceiro' || u.perfil === 'admin');
+    const { data: fasesCargo } = await sb.from('fases').select('cargo');
+    const cargos = [...new Set((fasesCargo || []).map(f => f.cargo))].sort();
+
+    const body = `
+        <div class="form-group"><label>Nome do Colaborador *</label><input id="ncNome" placeholder="Nome completo"></div>
+        <div class="form-group"><label>Cargo / Checklist *</label><select id="ncCargo"><option value="">Selecione...</option>${cargos.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Área</label><input id="ncArea" placeholder="Ex: Enfermagem"></div>
+        <div class="form-group"><label>Unidade</label><input id="ncUnidade" placeholder="Ex: Hospital São Paulo"></div>
+        <div class="form-group"><label>Gestor *</label><select id="ncGestor"><option value="">Selecione...</option>${gestores.map(g => `<option value="${g.id}">${g.nome}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Parceiro de Integração *</label><select id="ncParceiro"><option value="">Selecione...</option>${parceiros.map(p => `<option value="${p.id}">${p.nome}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Data de Admissão</label><input id="ncAdmissao" type="date"></div>
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarNovoColaborador()">Cadastrar e Gerar Checklist</button>
+    `;
+    openModal('Novo Colaborador', body, footer);
+}
+
+async function salvarNovoColaborador() {
+    const nome = document.getElementById('ncNome').value.trim();
+    const cargo = document.getElementById('ncCargo').value;
+    const area = document.getElementById('ncArea').value.trim();
+    const unidade = document.getElementById('ncUnidade').value.trim();
+    const gestor_id = document.getElementById('ncGestor').value;
+    const parceiro_id = document.getElementById('ncParceiro').value;
+    const data_admissao = document.getElementById('ncAdmissao').value || null;
+
+    if (!nome || !cargo || !gestor_id || !parceiro_id) { toast('Preencha nome, cargo, gestor e parceiro.', 'error'); return; }
+
+    // Calcular data_fim (90 dias)
+    let data_fim = null;
+    if (data_admissao) {
+        const d = new Date(data_admissao);
+        d.setDate(d.getDate() + 90);
+        data_fim = d.toISOString().split('T')[0];
+    }
+
+    // 1. Inserir colaborador
+    const { data: colab, error } = await sb.from('colaboradores').insert({
+        nome, cargo, area, unidade, gestor_id, parceiro_id, data_admissao, data_fim_integracao: data_fim
+    }).select().single();
+
+    if (error) { toast('Erro ao cadastrar: ' + error.message, 'error'); return; }
+
+    // 2. Buscar atividades modelo APENAS do cargo do colaborador
+    const { data: atividades } = await sb.from('atividades_modelo').select('id, responsavel').eq('cargo', cargo);
+
+    // 3. Gerar checklist
+    const checkItems = (atividades || []).map(a => ({
+        colaborador_id: colab.id,
+        atividade_modelo_id: a.id,
+        status: 'nao_iniciado',
+        responsavel: a.responsavel || null
+    }));
+
+    if (checkItems.length > 0) {
+        const { error: errCheck } = await sb.from('checklist_items').insert(checkItems);
+        if (errCheck) { toast('Colaborador criado, mas erro ao gerar checklist: ' + errCheck.message, 'error'); }
+    }
+
+    toast(`${nome} cadastrado com ${checkItems.length} atividades!`, 'success');
+    closeModal();
+    renderColaboradores();
+}
+
+// ============================================================
+// EDIT COLABORADOR MODAL
+// ============================================================
+async function openEditColaboradorModal(colabId) {
+    const { data: colab } = await sb.from('colaboradores').select('*').eq('id', colabId).single();
+    if (!colab) { toast('Colaborador não encontrado.', 'error'); return; }
+
+    const { data: users } = await sb.from('user_profiles').select('id, nome, perfil').eq('ativo', true);
+    const gestores = (users || []).filter(u => u.perfil === 'gestor' || u.perfil === 'admin');
+    const parceiros = (users || []).filter(u => u.perfil === 'parceiro' || u.perfil === 'admin');
+
+    const body = `
+        <div class="form-group"><label>Nome</label><input id="ecNome" value="${colab.nome}"></div>
+        <div class="form-group"><label>Cargo / Checklist</label>
+            <div style="display:flex; gap:8px; align-items:center">
+                <input id="ecCargoDisplay" value="${colab.cargo || ''}" disabled style="opacity:0.7; flex:1">
+                <button type="button" class="btn btn-outline btn-sm" onclick="abrirTrocaCargo('${colabId}', '${(colab.cargo || '').replace(/'/g, "\\'")}')">Trocar</button>
+            </div>
+        </div>
+        <div class="form-group"><label>Área</label><input id="ecArea" value="${colab.area || ''}"></div>
+        <div class="form-group"><label>Unidade</label><input id="ecUnidade" value="${colab.unidade || ''}"></div>
+        <div class="form-group"><label>Gestor</label><select id="ecGestor">${gestores.map(g => `<option value="${g.id}" ${g.id === colab.gestor_id ? 'selected' : ''}>${g.nome}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Parceiro</label><select id="ecParceiro">${parceiros.map(p => `<option value="${p.id}" ${p.id === colab.parceiro_id ? 'selected' : ''}>${p.nome}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Data de Admissão</label><input id="ecAdmissao" type="date" value="${colab.data_admissao || ''}"></div>
+        <div class="form-group"><label>Status Geral</label><select id="ecStatus">
+            <option value="em_andamento" ${colab.status_geral === 'em_andamento' ? 'selected' : ''}>Em andamento</option>
+            <option value="concluido" ${colab.status_geral === 'concluido' ? 'selected' : ''}>Concluído</option>
+            <option value="cancelado" ${colab.status_geral === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+        </select></div>
+    `;
+    const footer = `
+        <button class="btn btn-danger btn-sm" onclick="excluirColaborador('${colabId}')" style="margin-right:auto">Excluir</button>
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEditColaborador('${colabId}')">Salvar</button>
+    `;
+    openModal('Editar Colaborador', body, footer);
+}
+
+async function salvarEditColaborador(id) {
+    const updates = {
+        nome: document.getElementById('ecNome').value.trim(),
+        area: document.getElementById('ecArea').value.trim(),
+        unidade: document.getElementById('ecUnidade').value.trim(),
+        gestor_id: document.getElementById('ecGestor').value,
+        parceiro_id: document.getElementById('ecParceiro').value,
+        data_admissao: document.getElementById('ecAdmissao').value || null,
+        status_geral: document.getElementById('ecStatus').value,
+    };
+    const { error } = await sb.from('colaboradores').update(updates).eq('id', id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    toast('Colaborador atualizado!', 'success');
+    closeModal();
+    renderColaboradores();
+}
+
+async function excluirColaborador(id) {
+    if (!confirm('Tem certeza? Isso apagará o colaborador e todo o checklist dele.')) return;
+    const { error } = await sb.from('colaboradores').delete().eq('id', id);
+    if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
+    toast('Colaborador excluído.', 'success');
+    closeModal();
+    renderColaboradores();
+}
+
+// ============================================================
+// TROCAR CARGO / CHECKLIST DE UM COLABORADOR EXISTENTE
+// ============================================================
+async function abrirTrocaCargo(colabId, cargoAtual) {
+    const { data: fasesCargo } = await sb.from('fases').select('cargo');
+    const cargos = [...new Set((fasesCargo || []).map(f => f.cargo))].sort();
+
+    const body = `
+        <p class="text-sm" style="color:var(--danger); margin-bottom:12px">
+            ⚠️ Ao confirmar, o checklist atual deste colaborador (status, observações e responsáveis já preenchidos) será <strong>apagado</strong> e substituído por um novo checklist em branco, gerado a partir do cargo escolhido.
+        </p>
+        <div class="form-group"><label>Cargo atual</label><input value="${cargoAtual}" disabled style="opacity:0.7"></div>
+        <div class="form-group"><label>Novo Cargo / Checklist *</label>
+            <select id="tcNovoCargo">
+                <option value="">Selecione...</option>
+                ${cargos.map(c => `<option value="${c}" ${c === cargoAtual ? 'disabled' : ''}>${c}</option>`).join('')}
+            </select>
+        </div>
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="openEditColaboradorModal('${colabId}')">Voltar</button>
+        <button class="btn btn-danger" onclick="confirmarTrocaCargo('${colabId}')">Substituir Checklist</button>
+    `;
+    openModal('Trocar Cargo / Checklist', body, footer);
+}
+
+async function confirmarTrocaCargo(colabId) {
+    const novoCargo = document.getElementById('tcNovoCargo').value;
+    if (!novoCargo) { toast('Selecione o novo cargo.', 'error'); return; }
+    if (!confirm(`Confirma a substituição do checklist para "${novoCargo}"? O progresso atual será perdido.`)) return;
+
+    // 1. Atualizar cargo do colaborador
+    const { error: errUpdate } = await sb.from('colaboradores').update({ cargo: novoCargo }).eq('id', colabId);
+    if (errUpdate) { toast('Erro ao atualizar cargo: ' + errUpdate.message, 'error'); return; }
+
+    // 2. Apagar checklist antigo
+    const { error: errDelete } = await sb.from('checklist_items').delete().eq('colaborador_id', colabId);
+    if (errDelete) { toast('Erro ao apagar checklist antigo: ' + errDelete.message, 'error'); return; }
+
+    // 3. Buscar atividades do novo cargo e gerar novo checklist
+    const { data: atividades } = await sb.from('atividades_modelo').select('id, responsavel').eq('cargo', novoCargo);
+    const novosItens = (atividades || []).map(a => ({
+        colaborador_id: colabId,
+        atividade_modelo_id: a.id,
+        status: 'nao_iniciado',
+        responsavel: a.responsavel || null
+    }));
+
+    if (novosItens.length > 0) {
+        const { error: errInsert } = await sb.from('checklist_items').insert(novosItens);
+        if (errInsert) { toast('Erro ao gerar novo checklist: ' + errInsert.message, 'error'); return; }
+    }
+
+    toast('Checklist substituído com sucesso!', 'success');
+    closeModal();
+    renderColaboradores();
+}
+
+// ============================================================
+// CHECKLIST VIEW
+// ============================================================
+async function openChecklist(colabId) {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div class="loading">Carregando checklist...</div>';
+    document.getElementById('pageTitle').textContent = 'Checklist';
+
+    const { data: colab } = await sb.from('colaboradores').select('*').eq('id', colabId).single();
+    if (!colab) { main.innerHTML = '<p>Colaborador não encontrado.</p>'; return; }
+
+    // Fetch checklist items joined with atividades_modelo and fases
+    const { data: items } = await sb
+        .from('checklist_items')
+        .select('*, atividade_modelo:atividades_modelo(*, fase:fases(*))')
+        .eq('colaborador_id', colabId);
+
+    if (!items || items.length === 0) { main.innerHTML = '<p>Nenhuma atividade no checklist.</p>'; return; }
+
+    // Group by phase
+    const phases = {};
+    for (const item of items) {
+        const fase = item.atividade_modelo.fase;
+        if (!phases[fase.id]) {
+            phases[fase.id] = { ...fase, items: [] };
+        }
+        phases[fase.id].items.push(item);
+    }
+
+    // Sort phases by ordem, items by ordem
+    const sortedPhases = Object.values(phases).sort((a, b) => a.ordem - b.ordem);
+    sortedPhases.forEach(p => p.items.sort((a, b) => a.atividade_modelo.ordem - b.atividade_modelo.ordem));
+
+    // Header
+    const admDate = colab.data_admissao ? new Date(colab.data_admissao).toLocaleDateString('pt-BR') : '—';
+    const fimDate = colab.data_fim_integracao ? new Date(colab.data_fim_integracao).toLocaleDateString('pt-BR') : '—';
+    const totalDone = items.filter(i => i.status === 'concluido').length;
+    const pctGeral = Math.round((totalDone / items.length) * 100);
+
+    let html = `
+    <div class="mb-16">
+        <button class="btn btn-outline btn-sm" onclick="navigate('colaboradores')">← Voltar</button>
+    </div>
+    <div class="card mb-16">
+        <div class="card-body">
+            <h3 style="margin-bottom:8px">${colab.nome}</h3>
+            <div class="text-sm" style="color:var(--primary); font-weight:600; margin-bottom:8px">📋 ${colab.cargo || 'Cargo não definido'}</div>
+            <div class="flex gap-16 text-sm text-muted" style="flex-wrap:wrap">
+                <span>📍 ${colab.area || '—'} · ${colab.unidade || '—'}</span>
+                <span>📅 Admissão: ${admDate}</span>
+                <span>🏁 Fim integração: ${fimDate}</span>
+            </div>
+            <div class="mt-8 flex items-center gap-8">
+                <div class="progress-bar" style="flex:1;max-width:300px"><div class="fill ${pctGeral >= 80 ? 'green' : pctGeral >= 40 ? 'yellow' : 'red'}" style="width:${pctGeral}%"></div></div>
+                <span class="text-sm"><strong>${pctGeral}%</strong> concluído (${totalDone}/${items.length})</span>
+            </div>
+        </div>
+    </div>`;
+
+    const statusLabels = {
+        nao_iniciado: '⬜ Não iniciado',
+        concluido: '🟢 Concluído',
+        em_andamento: '🟡 Em andamento',
+        necessita_acompanhamento: '🔴 Necessita acompanhamento',
+        nao_aplicavel: '⚪ Não aplicável',
+    };
+
+    for (const fase of sortedPhases) {
+        const faseDone = fase.items.filter(i => i.status === 'concluido').length;
+        const faseNa = fase.items.filter(i => i.status === 'nao_aplicavel').length;
+        const faseTotal = fase.items.length - faseNa;
+        const fasePct = faseTotal > 0 ? Math.round((faseDone / faseTotal) * 100) : 100;
+
+        html += `
+        <div class="fase-section">
+            <div class="fase-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                <h4>${fase.nome}</h4>
+                <span class="fase-progress">${fase.periodo} · ${fasePct}% (${faseDone}/${faseTotal})</span>
+            </div>
+            <div class="fase-body">`;
+
+        for (const item of fase.items) {
+            const am = item.atividade_modelo;
+            html += `
+            <div class="atividade-row" id="atv-${item.id}">
+                <div class="atv-num">${am.ordem}</div>
+                <div class="atv-content">
+                    <div class="atv-title">${am.atividade}</div>
+                    <span class="atv-expand" onclick="this.nextElementSibling.classList.toggle('open')">ℹ️ Detalhes</span>
+                    <div class="atv-detail">
+                        <p><strong>Como conduzir:</strong> ${am.como_conduzir || '—'}</p>
+                        ${am.evidencia_esperada ? `<p style="margin-top:6px"><strong>Evidência esperada:</strong> ${am.evidencia_esperada}</p>` : ''}
+                    </div>
+                    <div class="atv-controls mt-8">
+                        <select id="status-${item.id}" onchange="markUnsaved('${item.id}')">
+                            ${Object.entries(statusLabels).map(([k, v]) => `<option value="${k}" ${item.status === k ? 'selected' : ''}>${v}</option>`).join('')}
+                        </select>
+                        <input id="resp-${item.id}" type="text" placeholder="Responsável" value="${item.responsavel || ''}" onchange="markUnsaved('${item.id}')" style="max-width:200px">
+                        <button class="save-btn" id="savebtn-${item.id}" onclick="saveChecklistItem('${item.id}')">Salvar</button>
+                    </div>
+                    <textarea id="obs-${item.id}" placeholder="Observação (opcional)..." onchange="markUnsaved('${item.id}')">${item.observacao || ''}</textarea>
+                </div>
+            </div>`;
+        }
+
+        html += `</div></div>`;
+    }
+
+    main.innerHTML = html;
+}
+
+function markUnsaved(itemId) {
+    const btn = document.getElementById(`savebtn-${itemId}`);
+    if (btn) { btn.style.background = 'var(--accent)'; btn.textContent = 'Salvar ●'; }
+}
+
+async function saveChecklistItem(itemId) {
+    const status = document.getElementById(`status-${itemId}`).value;
+    const observacao = document.getElementById(`obs-${itemId}`).value.trim();
+    const responsavel = document.getElementById(`resp-${itemId}`).value.trim();
+    const btn = document.getElementById(`savebtn-${itemId}`);
+
+    const { error } = await sb.from('checklist_items').update({
+        status,
+        observacao: observacao || null,
+        responsavel: responsavel || null,
+        atualizado_por: currentUser.id,
+        atualizado_em: new Date().toISOString()
+    }).eq('id', itemId);
+
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+    btn.style.background = 'var(--success)';
+    btn.textContent = '✓ Salvo';
+    setTimeout(() => { btn.style.background = 'var(--primary)'; btn.textContent = 'Salvar'; }, 2000);
+}
+
+// ============================================================
+// PAGE: USUARIOS (Admin only)
+// ============================================================
+async function renderUsuarios() {
+    if (currentProfile.perfil !== 'admin') { navigate('dashboard'); return; }
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div class="loading">Carregando...</div>';
+
+    const { data: users } = await sb.from('user_profiles').select('*').order('created_at', { ascending: false });
+
+    const perfilLabel = { admin: 'Administrador', gestor: 'Gestor', parceiro: 'Parceiro de Integração' };
+
+    let html = `
+    <div class="mb-16"><button class="btn btn-primary" onclick="openNovoUsuarioModal()">+ Novo Usuário</button></div>
+    <div class="card"><div class="card-body no-pad"><table>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ativo</th><th></th></tr></thead><tbody>`;
+
+    for (const u of (users || [])) {
+        html += `<tr>
+            <td>${u.nome}</td>
+            <td>${u.email}</td>
+            <td>${perfilLabel[u.perfil] || u.perfil}</td>
+            <td>${u.ativo ? '<span class="badge badge-green">Sim</span>' : '<span class="badge badge-gray">Não</span>'}</td>
+            <td><button class="btn btn-sm btn-outline" onclick="openEditUsuarioModal('${u.id}')">✏️</button></td>
+        </tr>`;
+    }
+
+    html += '</tbody></table></div></div>';
+    main.innerHTML = html;
+}
+
+async function openNovoUsuarioModal() {
+    const body = `
+        <div class="form-group"><label>Nome *</label><input id="nuNome" placeholder="Nome completo"></div>
+        <div class="form-group"><label>E-mail *</label><input id="nuEmail" type="email" placeholder="email@hapvida.com.br"></div>
+        <div class="form-group"><label>Senha *</label><input id="nuSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
+        <div class="form-group"><label>Perfil *</label><select id="nuPerfil">
+            <option value="gestor">Gestor</option>
+            <option value="parceiro">Parceiro de Integração</option>
+            <option value="admin">Administrador</option>
+        </select></div>
+        <p class="text-sm text-muted mt-8">O usuário será criado no Supabase Auth e no banco de perfis.</p>
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarNovoUsuario()">Criar Usuário</button>
+    `;
+    openModal('Novo Usuário', body, footer);
+}
+
+async function salvarNovoUsuario() {
+    const nome = document.getElementById('nuNome').value.trim();
+    const email = document.getElementById('nuEmail').value.trim();
+    const senha = document.getElementById('nuSenha').value;
+    const perfil = document.getElementById('nuPerfil').value;
+
+    if (!nome || !email || !senha) { toast('Preencha todos os campos.', 'error'); return; }
+    if (senha.length < 6) { toast('Senha deve ter no mínimo 6 caracteres.', 'error'); return; }
+
+    // Call serverless function to create user (needs service_role key)
+    try {
+        const resp = await fetch('/api/create-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, email, senha, perfil })
+        });
+        const result = await resp.json();
+        if (!resp.ok) throw new Error(result.error || 'Erro desconhecido');
+        toast(`Usuário ${nome} criado com sucesso!`, 'success');
+        closeModal();
+        renderUsuarios();
+    } catch (err) {
+        toast('Erro ao criar usuário: ' + err.message, 'error');
+    }
+}
+
+async function openEditUsuarioModal(userId) {
+    const { data: u } = await sb.from('user_profiles').select('*').eq('id', userId).single();
+    if (!u) return;
+
+    const body = `
+        <div class="form-group"><label>Nome</label><input id="euNome" value="${u.nome}"></div>
+        <div class="form-group"><label>E-mail</label><input id="euEmail" value="${u.email}" disabled></div>
+        <div class="form-group"><label>Perfil</label><select id="euPerfil">
+            <option value="gestor" ${u.perfil === 'gestor' ? 'selected' : ''}>Gestor</option>
+            <option value="parceiro" ${u.perfil === 'parceiro' ? 'selected' : ''}>Parceiro de Integração</option>
+            <option value="admin" ${u.perfil === 'admin' ? 'selected' : ''}>Administrador</option>
+        </select></div>
+        <div class="form-group"><label>Ativo</label><select id="euAtivo">
+            <option value="true" ${u.ativo ? 'selected' : ''}>Sim</option>
+            <option value="false" ${!u.ativo ? 'selected' : ''}>Não</option>
+        </select></div>
+    `;
+    const footer = `
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEditUsuario('${userId}')">Salvar</button>
+    `;
+    openModal('Editar Usuário', body, footer);
+}
+
+async function salvarEditUsuario(id) {
+    const { error } = await sb.from('user_profiles').update({
+        nome: document.getElementById('euNome').value.trim(),
+        perfil: document.getElementById('euPerfil').value,
+        ativo: document.getElementById('euAtivo').value === 'true',
+    }).eq('id', id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    toast('Usuário atualizado!', 'success');
+    closeModal();
+    renderUsuarios();
+}
+
+// ============================================================
+// PAGE: BIBLIOTECA DE ATIVIDADES (read-only view)
+// ============================================================
+async function renderBiblioteca(cargoSelecionado) {
+    if (currentProfile.perfil !== 'admin') { navigate('dashboard'); return; }
+
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div class="loading">Carregando...</div>';
+
+    const { data: todasFases } = await sb.from('fases').select('*').order('ordem');
+    const cargos = [...new Set((todasFases || []).map(f => f.cargo))].sort();
+    const cargo = cargoSelecionado || cargos[0];
+
+    const { data: fases } = await sb.from('fases').select('*').eq('cargo', cargo).order('ordem');
+    const { data: atividades } = await sb.from('atividades_modelo').select('*').eq('cargo', cargo).order('ordem');
+
+    let html = `
+    <div class="form-group mb-16" style="max-width:480px">
+        <label>Cargo / Checklist</label>
+        <select onchange="renderBiblioteca(this.value)">
+            ${cargos.map(c => `<option value="${c}" ${c === cargo ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+    </div>
+    <p class="text-sm text-muted mb-16">Biblioteca mestre de atividades importada da planilha. Estas são as atividades copiadas automaticamente para cada novo colaborador cadastrado com este cargo.</p>`;
+
+    for (const fase of (fases || [])) {
+        const atvs = (atividades || []).filter(a => a.fase_id === fase.id);
+        html += `
+        <div class="fase-section">
+            <div class="fase-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                <h4>${fase.ordem}. ${fase.nome}</h4>
+                <span class="fase-progress">${fase.periodo} · ${atvs.length} atividades</span>
+            </div>
+            <div class="fase-body">`;
+
+        for (const a of atvs) {
+            html += `
+            <div class="atividade-row">
+                <div class="atv-num">${a.ordem}</div>
+                <div class="atv-content">
+                    <div class="atv-title">${a.atividade}</div>
+                    <div class="atv-meta">${a.como_conduzir || ''}</div>
+                    ${a.evidencia_esperada ? `<div class="text-sm" style="color:var(--primary)">✅ Evidência: ${a.evidencia_esperada}</div>` : ''}
+                    ${a.responsavel ? `<div class="text-sm text-muted">👤 Responsável: ${a.responsavel}</div>` : ''}
+                </div>
+            </div>`;
+        }
+
+        html += `</div></div>`;
+    }
+
+    main.innerHTML = html;
+}
+</script>
+</body>
+</html>
