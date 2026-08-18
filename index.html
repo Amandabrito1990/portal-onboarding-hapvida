@@ -887,7 +887,11 @@ async function openChecklist(colabId) {
                         <select id="status-${item.id}" onchange="markUnsaved('${item.id}')">
                             ${Object.entries(statusLabels).map(([k, v]) => `<option value="${k}" ${item.status === k ? 'selected' : ''}>${v}</option>`).join('')}
                         </select>
-                        <input id="resp-${item.id}" type="text" placeholder="Responsável" value="${item.responsavel || ''}" onchange="markUnsaved('${item.id}')" style="max-width:200px">
+                        <select id="resp-${item.id}" onchange="markUnsaved('${item.id}')" style="max-width:200px">
+                            <option value="" ${!item.responsavel ? 'selected' : ''}>Responsável...</option>
+                            <option value="Líder" ${item.responsavel === 'Líder' ? 'selected' : ''}>Líder</option>
+                            <option value="Parceiro de Integração" ${item.responsavel === 'Parceiro de Integração' ? 'selected' : ''}>Parceiro de Integração</option>
+                        </select>
                         <button class="save-btn" id="savebtn-${item.id}" onclick="saveChecklistItem('${item.id}')">Salvar</button>
                     </div>
                     <textarea id="obs-${item.id}" placeholder="Observação (opcional)..." onchange="markUnsaved('${item.id}')">${item.observacao || ''}</textarea>
