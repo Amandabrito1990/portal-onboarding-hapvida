@@ -324,6 +324,7 @@ tbody tr:hover { background: var(--primary-light); }
      SUPABASE JS (CDN)
      ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 // ============================================================
@@ -417,6 +418,7 @@ function buildSidebar() {
 
     let links = [
         { id: 'dashboard', icon: '📊', label: 'Painel' },
+        { id: 'relatorio', icon: '📈', label: 'Dashboard de Integração' },
         { id: 'colaboradores', icon: '👥', label: 'Colaboradores' },
     ];
     if (isAdmin) {
@@ -441,6 +443,7 @@ function navigate(page) {
 
     const titles = {
         dashboard: 'Painel de Acompanhamento',
+        relatorio: 'Dashboard de Integração',
         colaboradores: 'Colaboradores',
         usuarios: 'Gerenciar Usuários',
         biblioteca: 'Biblioteca de Atividades',
@@ -451,6 +454,7 @@ function navigate(page) {
     // Render page
     const render = {
         dashboard: renderDashboard,
+        relatorio: renderRelatorioIntegracao,
         colaboradores: renderColaboradores,
         usuarios: renderUsuarios,
         biblioteca: renderBiblioteca,
@@ -479,6 +483,91 @@ function closeModal() {
 // ============================================================
 // PAGE: DASHBOARD
 // ============================================================
+// ============================================================
+// DASHBOARD DE INTEGRAÇÃO — compilado: colaborador, líder, parceiro, início, % conclusão
+// ============================================================
+async function renderRelatorioIntegracao() {
+    const main = document.getElementById('mainContent');
+    main.innerHTML = '<div class="loading">Carregando...</div>';
+
+    const { data: colabs } = await sb.from('colaboradores').select('*').order('nome');
+    if (!colabs || colabs.length === 0) { main.innerHTML = '<p>Nenhum colaborador cadastrado.</p>'; return; }
+
+    const { data: users } = await sb.from('user_profiles').select('id, nome');
+    const userMap = {};
+    (users || []).forEach(u => userMap[u.id] = u.nome);
+
+    const colabIds = colabs.map(c => c.id);
+    const { data: items } = await sb.from('checklist_items').select('colaborador_id, status').in('colaborador_id', colabIds);
+    const allItems = items || [];
+
+    let html = `
+    <div class="card">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center">
+            <h3>Dashboard de Integração</h3>
+            <button class="btn btn-outline btn-sm" onclick="exportarRelatorioExcel()">📥 Exportar para Excel</button>
+        </div>
+        <div class="card-body no-pad">
+            <table>
+                <thead><tr>
+                    <th>Colaborador</th>
+                    <th>Líder</th>
+                    <th>Parceiro de Integração</th>
+                    <th>Data de Início da Integração</th>
+                    <th>% de Conclusão</th>
+                </tr></thead>
+                <tbody>
+    `;
+
+    relatorioIntegracaoData = [];
+
+    for (const c of colabs) {
+        const ci = allItems.filter(i => i.colaborador_id === c.id);
+        const done = ci.filter(i => i.status === 'concluido').length;
+        const pct = ci.length ? Math.round((done / ci.length) * 100) : 0;
+        const color = pct >= 80 ? 'green' : pct >= 40 ? 'yellow' : 'red';
+        const admDate = c.data_admissao ? new Date(c.data_admissao).toLocaleDateString('pt-BR') : '—';
+        const liderNome = userMap[c.gestor_id] || '—';
+        const parceiroNome = userMap[c.parceiro_id] || '—';
+
+        relatorioIntegracaoData.push({
+            'Colaborador': c.nome,
+            'Líder': liderNome,
+            'Parceiro de Integração': parceiroNome,
+            'Data de Início da Integração': admDate,
+            '% de Conclusão': pct
+        });
+
+        html += `<tr style="cursor:pointer" onclick="openChecklist('${c.id}')">
+            <td><strong>${c.nome}</strong></td>
+            <td>${liderNome}</td>
+            <td>${parceiroNome}</td>
+            <td>${admDate}</td>
+            <td style="min-width:140px">
+                <div class="flex items-center gap-8">
+                    <div class="progress-bar" style="flex:1"><div class="fill ${color}" style="width:${pct}%"></div></div>
+                    <span class="text-sm">${pct}%</span>
+                </div>
+            </td>
+        </tr>`;
+    }
+
+    html += `</tbody></table></div></div>`;
+    main.innerHTML = html;
+}
+
+let relatorioIntegracaoData = [];
+
+function exportarRelatorioExcel() {
+    if (!relatorioIntegracaoData.length) { toast('Nenhum dado para exportar.', 'error'); return; }
+    const ws = XLSX.utils.json_to_sheet(relatorioIntegracaoData);
+    ws['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 25 }, { wch: 22 }, { wch: 15 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dashboard Integração');
+    const dataStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `dashboard-integracao-${dataStr}.xlsx`);
+}
+
 async function renderDashboard() {
     const main = document.getElementById('mainContent');
     main.innerHTML = '<div class="loading">Carregando...</div>';
