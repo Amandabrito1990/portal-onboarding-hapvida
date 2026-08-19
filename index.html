@@ -489,6 +489,11 @@ async function renderDashboard() {
     const { data: colabs } = await sb.from('colaboradores').select('*');
     if (!colabs) { main.innerHTML = '<p>Nenhum colaborador cadastrado.</p>'; return; }
 
+    // Fetch users to resolve nomes de líder/parceiro
+    const { data: users } = await sb.from('user_profiles').select('id, nome');
+    const userMap = {};
+    (users || []).forEach(u => userMap[u.id] = u.nome);
+
     // Fetch all checklist items for these colaboradores
     const colabIds = colabs.map(c => c.id);
     const { data: items } = await sb
@@ -516,7 +521,7 @@ async function renderDashboard() {
         <div class="card-header"><h3>Progresso por Colaborador</h3></div>
         <div class="card-body no-pad">
             <table>
-                <thead><tr><th>Colaborador</th><th>Área</th><th>Admissão</th><th>Progresso</th><th>Status</th></tr></thead>
+                <thead><tr><th>Colaborador</th><th>Líder</th><th>Parceiro de Integração</th><th>Início da Integração</th><th>Progresso</th><th>Status</th></tr></thead>
                 <tbody>
     `;
 
@@ -531,9 +536,12 @@ async function renderDashboard() {
             ? '<span class="badge badge-red">Cancelado</span>'
             : '<span class="badge badge-blue">Em integração</span>';
         const admDate = c.data_admissao ? new Date(c.data_admissao).toLocaleDateString('pt-BR') : '—';
+        const liderNome = userMap[c.gestor_id] || '—';
+        const parceiroNome = userMap[c.parceiro_id] || '—';
         html += `<tr style="cursor:pointer" onclick="openChecklist('${c.id}')">
             <td><strong>${c.nome}</strong></td>
-            <td>${c.area || '—'}</td>
+            <td>${liderNome}</td>
+            <td>${parceiroNome}</td>
             <td>${admDate}</td>
             <td style="min-width:140px">
                 <div class="flex items-center gap-8">
