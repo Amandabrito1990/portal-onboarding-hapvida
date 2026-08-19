@@ -424,6 +424,7 @@ function buildSidebar() {
     if (isAdmin) {
         links.push({ id: 'usuarios', icon: '🔑', label: 'Usuários' });
         links.push({ id: 'biblioteca', icon: '📋', label: 'Biblioteca de Atividades' });
+        links.push({ id: 'importar', icon: '📥', label: 'Importar Planilha' });
     }
 
     nav.innerHTML = links.map(l =>
@@ -447,6 +448,7 @@ function navigate(page) {
         colaboradores: 'Colaboradores',
         usuarios: 'Gerenciar Usuários',
         biblioteca: 'Biblioteca de Atividades',
+        importar: 'Importar Planilha',
         checklist: 'Checklist'
     };
     document.getElementById('pageTitle').textContent = titles[page] || 'Portal';
@@ -458,6 +460,7 @@ function navigate(page) {
         colaboradores: renderColaboradores,
         usuarios: renderUsuarios,
         biblioteca: renderBiblioteca,
+        importar: renderImportar,
     };
     if (render[page]) render[page]();
 }
@@ -1191,7 +1194,219 @@ async function renderBiblioteca(cargoSelecionado) {
         html += `</div></div>`;
     }
 
-    main.innerHTML = html;
+// ============================================================
+// IMPORTAR PLANILHA — carga em massa de Usuários e Colaboradores
+// ============================================================
+async function renderImportar() {
+    if (currentProfile.perfil !== 'admin') { navigate('dashboard'); return; }
+    const main = document.getElementById('mainContent');
+
+    main.innerHTML = `
+    <div class="card mb-16">
+        <div class="card-header"><h3>1. Importar Usuários (Gestores / Parceiros / Admins)</h3></div>
+        <div class="card-body">
+            <p class="text-sm text-muted mb-8">Colunas obrigatórias: <strong>Nome, Email, Senha, Perfil</strong> (perfil deve ser exatamente: admin, gestor ou parceiro).</p>
+            <div class="flex gap-8 mb-16" style="flex-wrap:wrap">
+                <button class="btn btn-outline btn-sm" onclick="baixarModeloUsuarios()">📄 Baixar modelo (.xlsx)</button>
+            </div>
+            <input type="file" id="fileUsuarios" accept=".xlsx,.xls">
+            <button class="btn btn-primary mt-8" onclick="processarImportUsuarios()">Processar planilha de Usuários</button>
+            <div id="logUsuarios" class="mt-16"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>2. Importar Colaboradores</h3></div>
+        <div class="card-body">
+            <p class="text-sm text-muted mb-8">Colunas obrigatórias: <strong>Nome, Cargo, Área, Unidade, Email do Gestor, Email do Parceiro, Data de Admissão</strong> (DD/MM/AAAA). O texto de "Cargo" precisa ser <u>idêntico</u> a um dos cargos já cadastrados na Biblioteca de Atividades. Os e-mails de Gestor e Parceiro precisam já existir em Usuários (importe os usuários primeiro).</p>
+            <div class="flex gap-8 mb-16" style="flex-wrap:wrap">
+                <button class="btn btn-outline btn-sm" onclick="baixarModeloColaboradores()">📄 Baixar modelo (.xlsx)</button>
+            </div>
+            <input type="file" id="fileColaboradores" accept=".xlsx,.xls">
+            <button class="btn btn-primary mt-8" onclick="processarImportColaboradores()">Processar planilha de Colaboradores</button>
+            <div id="logColaboradores" class="mt-16"></div>
+        </div>
+    </div>
+    `;
+}
+
+function baixarModeloUsuarios() {
+    const ws = XLSX.utils.json_to_sheet([
+        { Nome: 'Maria Silva', Email: 'maria.silva@hapvida.com.br', Senha: 'SenhaProvisoria123', Perfil: 'gestor' }
+    ]);
+    ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Usuários');
+    XLSX.writeFile(wb, 'modelo-importacao-usuarios.xlsx');
+}
+
+function baixarModeloColaboradores() {
+    const ws = XLSX.utils.json_to_sheet([{
+        'Nome': 'João Souza',
+        'Cargo': 'Cole aqui o nome exato do cargo (veja Biblioteca de Atividades)',
+        'Área': 'Enfermagem',
+        'Unidade': 'Hospital São Paulo',
+        'Email do Gestor': 'maria.silva@hapvida.com.br',
+        'Email do Parceiro': 'ana.costa@hapvida.com.br',
+        'Data de Admissão': '25/12/2026'
+    }]);
+    ws['!cols'] = [{ wch: 25 }, { wch: 45 }, { wch: 18 }, { wch: 25 }, { wch: 28 }, { wch: 28 }, { wch: 18 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
+    XLSX.writeFile(wb, 'modelo-importacao-colaboradores.xlsx');
+}
+
+function lerPlanilha(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                resolve(XLSX.utils.sheet_to_json(sheet, { defval: '' }));
+            } catch (err) { reject(err); }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function excelDateToISO(val) {
+    if (!val) return null;
+    if (val instanceof Date) return val.toISOString().split('T')[0];
+    if (typeof val === 'string') {
+        const m = val.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+        if (/^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0, 10);
+    }
+    return null;
+}
+
+async function processarImportUsuarios() {
+    const fileInput = document.getElementById('fileUsuarios');
+    const log = document.getElementById('logUsuarios');
+    if (!fileInput.files.length) { toast('Selecione um arquivo primeiro.', 'error'); return; }
+
+    let rows;
+    try { rows = await lerPlanilha(fileInput.files[0]); }
+    catch (err) { log.innerHTML = `<p style="color:var(--danger)">Erro ao ler o arquivo: ${err.message}</p>`; return; }
+
+    if (!rows.length) { log.innerHTML = '<p>Planilha vazia.</p>'; return; }
+
+    log.innerHTML = `<p>Processando ${rows.length} linha(s)...</p>`;
+    const resultados = [];
+
+    for (const row of rows) {
+        const nome = String(row['Nome'] || '').trim();
+        const email = String(row['Email'] || '').trim();
+        const senha = String(row['Senha'] || '').trim();
+        const perfil = String(row['Perfil'] || '').trim().toLowerCase();
+
+        if (!nome || !email || !senha || !['admin', 'gestor', 'parceiro'].includes(perfil)) {
+            resultados.push({ nome: nome || email || '(linha em branco)', ok: false, msg: 'Dados incompletos ou perfil inválido' });
+            continue;
+        }
+
+        try {
+            const resp = await fetch('/api/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, email, senha, perfil })
+            });
+            const result = await resp.json();
+            if (!resp.ok) throw new Error(result.error || 'Erro desconhecido');
+            resultados.push({ nome, ok: true, msg: 'Criado com sucesso' });
+        } catch (err) {
+            resultados.push({ nome, ok: false, msg: err.message });
+        }
+    }
+
+    const sucesso = resultados.filter(r => r.ok).length;
+    log.innerHTML = `
+        <p><strong>${sucesso} de ${resultados.length}</strong> usuário(s) criado(s) com sucesso.</p>
+        <table><thead><tr><th>Nome</th><th>Resultado</th></tr></thead><tbody>
+        ${resultados.map(r => `<tr><td>${r.nome}</td><td style="color:${r.ok ? 'var(--primary)' : 'var(--danger)'}">${r.ok ? '✅' : '❌'} ${r.msg}</td></tr>`).join('')}
+        </tbody></table>
+    `;
+    if (sucesso > 0) renderUsuarios();
+}
+
+async function processarImportColaboradores() {
+    const fileInput = document.getElementById('fileColaboradores');
+    const log = document.getElementById('logColaboradores');
+    if (!fileInput.files.length) { toast('Selecione um arquivo primeiro.', 'error'); return; }
+
+    let rows;
+    try { rows = await lerPlanilha(fileInput.files[0]); }
+    catch (err) { log.innerHTML = `<p style="color:var(--danger)">Erro ao ler o arquivo: ${err.message}</p>`; return; }
+
+    if (!rows.length) { log.innerHTML = '<p>Planilha vazia.</p>'; return; }
+
+    log.innerHTML = `<p>Processando ${rows.length} linha(s)...</p>`;
+
+    // Pré-carregar cargos válidos e usuários (para resolver e-mail -> id)
+    const { data: fasesCargo } = await sb.from('fases').select('cargo');
+    const cargosValidos = new Set((fasesCargo || []).map(f => f.cargo));
+    const { data: users } = await sb.from('user_profiles').select('id, email');
+    const emailToId = {};
+    (users || []).forEach(u => emailToId[(u.email || '').toLowerCase()] = u.id);
+
+    const resultados = [];
+
+    for (const row of rows) {
+        const nome = String(row['Nome'] || '').trim();
+        const cargo = String(row['Cargo'] || '').trim();
+        const area = String(row['Área'] || row['Area'] || '').trim();
+        const unidade = String(row['Unidade'] || '').trim();
+        const emailGestor = String(row['Email do Gestor'] || '').trim().toLowerCase();
+        const emailParceiro = String(row['Email do Parceiro'] || '').trim().toLowerCase();
+        const dataAdmissao = excelDateToISO(row['Data de Admissão']);
+
+        if (!nome) { resultados.push({ nome: '(linha em branco)', ok: false, msg: 'Nome vazio' }); continue; }
+        if (!cargosValidos.has(cargo)) { resultados.push({ nome, ok: false, msg: `Cargo "${cargo}" não encontrado na Biblioteca de Atividades` }); continue; }
+        const gestor_id = emailToId[emailGestor];
+        const parceiro_id = emailToId[emailParceiro];
+        if (!gestor_id) { resultados.push({ nome, ok: false, msg: `Gestor com e-mail "${emailGestor}" não encontrado` }); continue; }
+        if (!parceiro_id) { resultados.push({ nome, ok: false, msg: `Parceiro com e-mail "${emailParceiro}" não encontrado` }); continue; }
+
+        let data_fim = null;
+        if (dataAdmissao) {
+            const d = new Date(dataAdmissao);
+            d.setDate(d.getDate() + 90);
+            data_fim = d.toISOString().split('T')[0];
+        }
+
+        try {
+            const { data: colab, error } = await sb.from('colaboradores').insert({
+                nome, cargo, area, unidade, gestor_id, parceiro_id,
+                data_admissao: dataAdmissao, data_fim_integracao: data_fim
+            }).select().single();
+            if (error) throw error;
+
+            const { data: atividades } = await sb.from('atividades_modelo').select('id, responsavel').eq('cargo', cargo);
+            const checkItems = (atividades || []).map(a => ({
+                colaborador_id: colab.id,
+                atividade_modelo_id: a.id,
+                status: 'nao_iniciado',
+                responsavel: a.responsavel || null
+            }));
+            if (checkItems.length > 0) {
+                const { error: errCheck } = await sb.from('checklist_items').insert(checkItems);
+                if (errCheck) throw errCheck;
+            }
+            resultados.push({ nome, ok: true, msg: `Cadastrado com checklist de ${checkItems.length} atividades` });
+        } catch (err) {
+            resultados.push({ nome, ok: false, msg: err.message });
+        }
+    }
+
+    const sucesso = resultados.filter(r => r.ok).length;
+    log.innerHTML = `
+        <p><strong>${sucesso} de ${resultados.length}</strong> colaborador(es) cadastrado(s) com sucesso.</p>
+        <table><thead><tr><th>Nome</th><th>Resultado</th></tr></thead><tbody>
+        ${resultados.map(r => `<tr><td>${r.nome}</td><td style="color:${r.ok ? 'var(--primary)' : 'var(--danger)'}">${r.ok ? '✅' : '❌'} ${r.msg}</td></tr>`).join('')}
+        </tbody></table>
+    `;
 }
 </script>
 </body>
