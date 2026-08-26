@@ -994,7 +994,8 @@ async function openChecklist(colabId) {
                         </select>
                         <button class="save-btn" id="savebtn-${item.id}" onclick="saveChecklistItem('${item.id}')">Salvar</button>
                     </div>
-                    <textarea id="obs-${item.id}" placeholder="Observação (opcional)..." onchange="markUnsaved('${item.id}')">${item.observacao || ''}</textarea>
+                    <textarea id="obsLid-${item.id}" placeholder="Observações liderança (opcional)..." onchange="markUnsaved('${item.id}')">${item.observacao_lideranca || ''}</textarea>
+                    <textarea id="obsParc-${item.id}" placeholder="Observações Parceiro de Integração (opcional)..." onchange="markUnsaved('${item.id}')" class="mt-8">${item.observacao_parceiro || ''}</textarea>
                 </div>
             </div>`;
         }
@@ -1012,13 +1013,15 @@ function markUnsaved(itemId) {
 
 async function saveChecklistItem(itemId) {
     const status = document.getElementById(`status-${itemId}`).value;
-    const observacao = document.getElementById(`obs-${itemId}`).value.trim();
+    const observacaoLideranca = document.getElementById(`obsLid-${itemId}`).value.trim();
+    const observacaoParceiro = document.getElementById(`obsParc-${itemId}`).value.trim();
     const responsavel = document.getElementById(`resp-${itemId}`).value.trim();
     const btn = document.getElementById(`savebtn-${itemId}`);
 
     const { error } = await sb.from('checklist_items').update({
         status,
-        observacao: observacao || null,
+        observacao_lideranca: observacaoLideranca || null,
+        observacao_parceiro: observacaoParceiro || null,
         responsavel: responsavel || null,
         atualizado_por: currentUser.id,
         atualizado_em: new Date().toISOString()
