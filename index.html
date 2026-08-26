@@ -342,6 +342,13 @@ let currentUser = null;   // { id, email }
 let currentProfile = null; // { id, email, nome, perfil, ativo }
 let currentPage = 'dashboard';
 
+window.addEventListener('beforeunload', (e) => {
+    if (unsavedChecklistItems.size > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
 // ============================================================
 // TOAST
 // ============================================================
@@ -432,7 +439,15 @@ function buildSidebar() {
     ).join('');
 }
 
+let unsavedChecklistItems = new Set();
+
 function navigate(page) {
+    if (unsavedChecklistItems.size > 0) {
+        const confirmar = confirm('Você tem observações ou alterações não salvas no checklist. Se sair agora, elas serão perdidas. Deseja continuar mesmo assim?');
+        if (!confirmar) return;
+        unsavedChecklistItems.clear();
+    }
+
     currentPage = page;
     // Update sidebar active
     document.querySelectorAll('#sidebarNav a').forEach(a => {
@@ -1007,6 +1022,7 @@ async function openChecklist(colabId) {
 }
 
 function markUnsaved(itemId) {
+    unsavedChecklistItems.add(itemId);
     const btn = document.getElementById(`savebtn-${itemId}`);
     if (btn) { btn.style.background = 'var(--accent)'; btn.textContent = 'Salvar ●'; }
 }
@@ -1028,6 +1044,7 @@ async function saveChecklistItem(itemId) {
     }).eq('id', itemId);
 
     if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+    unsavedChecklistItems.delete(itemId);
     btn.style.background = 'var(--success)';
     btn.textContent = '✓ Salvo';
     setTimeout(() => { btn.style.background = 'var(--primary)'; btn.textContent = 'Salvar'; }, 2000);
