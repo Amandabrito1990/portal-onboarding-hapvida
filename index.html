@@ -909,6 +909,12 @@ async function confirmarTrocaCargo(colabId) {
 // CHECKLIST VIEW
 // ============================================================
 async function openChecklist(colabId) {
+    if (unsavedChecklistItems.size > 0) {
+        const confirmar = confirm('Você tem observações ou alterações não salvas no checklist atual. Se sair agora, elas serão perdidas. Deseja continuar mesmo assim?');
+        if (!confirmar) return;
+        unsavedChecklistItems.clear();
+    }
+
     const main = document.getElementById('mainContent');
     main.innerHTML = '<div class="loading">Carregando checklist...</div>';
     document.getElementById('pageTitle').textContent = 'Checklist';
