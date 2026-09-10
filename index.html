@@ -76,6 +76,7 @@ tbody tr:hover { background: var(--primary-light); }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 .btn-block { width: 100%; justify-content: center; }
 .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; }
+.success-msg { color: var(--success, #16a34a); font-size: 13px; margin-top: 8px; }
 
 /* ============================================================
    LAYOUT: SIDEBAR + HEADER + MAIN
@@ -264,10 +265,34 @@ tbody tr:hover { background: var(--primary-light); }
         </div>
         <div class="error-msg" id="loginError"></div>
         <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="doLogin()">Entrar</button>
+        <div style="text-align:center; margin-top:14px;">
+            <a href="#" onclick="openForgotPasswordModal(); return false;" style="font-size:13px; color: var(--primary); text-decoration:none;">Esqueci minha senha</a>
+        </div>
         <script>
         document.getElementById('loginPassword').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
         document.getElementById('loginEmail').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
         </script>
+    </div>
+</div>
+
+<!-- ============================================================
+     RESET PASSWORD PAGE (acessada pelo link enviado por e-mail)
+     ============================================================ -->
+<div class="login-page" id="resetPasswordPage" style="display:none;">
+    <div class="login-card">
+        <div class="logo-area">🏥 Hapvida</div>
+        <h1>Redefinir senha</h1>
+        <p>Escolha uma nova senha para acessar o portal.</p>
+        <div class="form-group">
+            <label>Nova senha</label>
+            <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+            <label>Confirmar nova senha</label>
+            <input type="password" id="newPasswordConfirm" placeholder="Repita a nova senha">
+        </div>
+        <div class="error-msg" id="resetPasswordError"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="doUpdatePassword()">Salvar nova senha</button>
     </div>
 </div>
 
@@ -374,6 +399,69 @@ async function doLogin() {
     if (error) { errEl.textContent = error.message; return; }
     await initApp(data.user);
 }
+
+function openForgotPasswordModal() {
+    const emailPrefill = document.getElementById('loginEmail').value.trim();
+    openModal(
+        'Esqueci minha senha',
+        `<p class="text-sm text-muted mb-8">Digite seu e-mail cadastrado. Vamos enviar um link para você criar uma nova senha.</p>
+         <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="forgotEmail" placeholder="seu.email@hapvida.com.br" value="${emailPrefill}">
+         </div>
+         <div class="error-msg" id="forgotPasswordError"></div>
+         <div class="success-msg" id="forgotPasswordSuccess" style="display:none;"></div>`,
+        `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+         <button class="btn btn-primary" onclick="sendPasswordReset()">Enviar link</button>`
+    );
+}
+
+async function sendPasswordReset() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    const errEl = document.getElementById('forgotPasswordError');
+    const okEl = document.getElementById('forgotPasswordSuccess');
+    errEl.textContent = '';
+    okEl.style.display = 'none';
+    if (!email) { errEl.textContent = 'Digite seu e-mail.'; return; }
+
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname
+    });
+
+    if (error) { errEl.textContent = error.message; return; }
+    okEl.textContent = 'Se esse e-mail estiver cadastrado, você vai receber um link para redefinir sua senha.';
+    okEl.style.display = 'block';
+}
+
+async function doUpdatePassword() {
+    const pw = document.getElementById('newPassword').value;
+    const pwConfirm = document.getElementById('newPasswordConfirm').value;
+    const errEl = document.getElementById('resetPasswordError');
+    errEl.textContent = '';
+
+    if (!pw || !pwConfirm) { errEl.textContent = 'Preencha os dois campos.'; return; }
+    if (pw.length < 6) { errEl.textContent = 'A senha deve ter no mínimo 6 caracteres.'; return; }
+    if (pw !== pwConfirm) { errEl.textContent = 'As senhas não coincidem.'; return; }
+
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) { errEl.textContent = error.message; return; }
+
+    toast('Senha atualizada com sucesso! Faça login com a nova senha.', 'success');
+    await sb.auth.signOut();
+    document.getElementById('resetPasswordPage').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+    // Limpa o token de recuperação da URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// Detecta quando o usuário chega pelo link de recuperação de senha
+sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('appShell').classList.remove('active');
+        document.getElementById('resetPasswordPage').style.display = 'flex';
+    }
+});
 
 async function doLogout() {
     await sb.auth.signOut();
