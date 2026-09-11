@@ -366,6 +366,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;   // { id, email }
 let currentProfile = null; // { id, email, nome, perfil, ativo }
 let currentPage = 'dashboard';
+let modoRecuperacaoSenha = false;
 
 window.addEventListener('beforeunload', (e) => {
     if (unsavedChecklistItems.size > 0) {
@@ -447,6 +448,7 @@ async function doUpdatePassword() {
     if (error) { errEl.textContent = error.message; return; }
 
     toast('Senha atualizada com sucesso! Faça login com a nova senha.', 'success');
+    modoRecuperacaoSenha = false;
     await sb.auth.signOut();
     document.getElementById('resetPasswordPage').style.display = 'none';
     document.getElementById('loginPage').style.display = 'flex';
@@ -454,12 +456,28 @@ async function doUpdatePassword() {
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-// Detecta quando o usuário chega pelo link de recuperação de senha
+// Detecta se a URL atual é um link de recuperação de senha, tanto no formato
+// antigo (#access_token=...&type=recovery) quanto no formato mais novo (?code=...)
+function detectarLinkRecuperacao() {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const queryParams = new URLSearchParams(window.location.search);
+    const type = hashParams.get('type') || queryParams.get('type');
+    const code = queryParams.get('code');
+    return { isRecovery: type === 'recovery', code };
+}
+
+function mostrarTelaResetSenha() {
+    modoRecuperacaoSenha = true;
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appShell').classList.remove('active');
+    document.getElementById('resetPasswordPage').style.display = 'flex';
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// Detecta quando o usuário chega pelo link de recuperação de senha (fluxo antigo, via evento)
 sb.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('appShell').classList.remove('active');
-        document.getElementById('resetPasswordPage').style.display = 'flex';
+        mostrarTelaResetSenha();
     }
 });
 
@@ -496,10 +514,22 @@ async function initApp(user) {
     navigate('dashboard');
 }
 
-// Check session on load
+// Ao carregar a página: primeiro verifica se é um link de recuperação de senha
+// (nesse caso NÃO deixa o usuário logar direto, mostra a tela de nova senha).
+// Só se não for recuperação, segue o fluxo normal de checar sessão já logada.
 (async () => {
+    const { isRecovery, code } = detectarLinkRecuperacao();
+
+    if (code) {
+        const { error } = await sb.auth.exchangeCodeForSession(code);
+        if (!error) { mostrarTelaResetSenha(); return; }
+    } else if (isRecovery) {
+        mostrarTelaResetSenha();
+        return;
+    }
+
     const { data: { session } } = await sb.auth.getSession();
-    if (session) {
+    if (session && !modoRecuperacaoSenha) {
         await initApp(session.user);
     }
 })();
